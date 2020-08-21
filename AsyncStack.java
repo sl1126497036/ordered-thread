@@ -185,7 +185,7 @@ public class AsyncStack {
      * 开始执行
      */
     public void start() {
-	 	Collections.sort(callerList);
+	Collections.sort(callerList);
         int preIndex = callerList.get(0).getThreadIndex();//preIndex表示上一个执行的线程序号
         List<Caller> syncTaskList = new ArrayList<>();
         for (Caller caller : callerList) {
