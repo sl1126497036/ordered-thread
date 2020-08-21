@@ -1,5 +1,4 @@
-package com.jrender.common.async;
-
+package com.perez.common.async;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -9,27 +8,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 
-/**
- * @author SL
- * @version 1.0
- * @date 2020/3/22 3:19 下午
- * 有序线程。通过lambda接收需要执行的方法、回调和异常处理并进行排序，按顺序新建线程执行，序号一致的同步执行
- */
 public class AsyncStack {
     private int threadIndex = 0;
     private List<Caller> callerList = new LinkedList<>();
-
     public AsyncStack(Action action) {
         push(action, null, null);
     }
-
     public AsyncStack(Action action, Callback callback) {
         push(action, callback, null);
     }
     public AsyncStack(Action action, Callback callback, Error error) {
         push(action, callback, error);
     }
-
     /**
      * 将待执行方法加入列表
      * @param action
@@ -48,7 +38,6 @@ public class AsyncStack {
     public AsyncStack sync(Action action) {
         return sync(action, null, null);
     }
-
     /**
      * 同步执行
      * @param action
@@ -58,7 +47,6 @@ public class AsyncStack {
     public AsyncStack sync(Action action, Callback callback) {
         return sync(action, callback, null);
     }
-
     /**
      * 同步执行
      * @param action
@@ -70,7 +58,6 @@ public class AsyncStack {
         push(action, callback, error);
         return this;
     }
-
     /**
      * 在上一个线程之前执行
      * @param action
@@ -102,7 +89,6 @@ public class AsyncStack {
         push(action, callback, error);
         return this;
     }
-
     /**
      * 在上一个线程之后执行
      * @param action
@@ -165,7 +151,6 @@ public class AsyncStack {
         threadIndex++;
         return this;
     }
-
     /**
      * 在上一个线程之后执行，并将序号回退
      * @param action
@@ -174,7 +159,6 @@ public class AsyncStack {
     public AsyncStack afterBack(Action action) {
         return afterBack(action);
     }
-
     /**
      * 在上一个线程之后执行，并将序号回退
      * @param action
@@ -184,7 +168,6 @@ public class AsyncStack {
     public AsyncStack afterBack(Action action, Callback callback) {
         return afterBack(action, callback);
     }
-
     /**
      * 在上一个线程之后执行，并将序号回退
      * @param action
@@ -198,25 +181,23 @@ public class AsyncStack {
         threadIndex--;
         return this;
     }
-
     /**
      * 开始执行
      */
     public void start() {
-        int preIndex = callerList.get(0).getThreadIndex();
-        Collections.sort(callerList);
+	 	Collections.sort(callerList);
+        int preIndex = callerList.get(0).getThreadIndex();//preIndex表示上一个执行的线程序号
         List<Caller> syncTaskList = new ArrayList<>();
         for (Caller caller : callerList) {
-            if (preIndex != caller.getThreadIndex()) {
+            if (preIndex != caller.getThreadIndex()) {//如果当前RPC的线程序号与preIndex不同，则直接执行，并清空syncTaskList
                 doTask(syncTaskList);
                 syncTaskList.clear();
-                preIndex = caller.getThreadIndex();
+                preIndex = caller.getThreadIndex();//更新上一个执行的RPC线程序号
             }
-            syncTaskList.add(caller);
+            syncTaskList.add(caller);//将当前要执行的RPC加入到syncTaskList中
         }
-        doTask(syncTaskList);
+        doTask(syncTaskList);//执行需要并发的RPC
     }
-
     private void doTask(List<Caller> callerList) {
         if (null != callerList && callerList.size() > 0) {
             CountDownLatch latch = new CountDownLatch(1);
@@ -248,5 +229,4 @@ public class AsyncStack {
             exec.shutdown();
         }
     }
-
 }
