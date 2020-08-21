@@ -1,4 +1,4 @@
-package com.jrender.common.async;
+package com.perez.common.async;
 
 public interface Callback<R> {
     /**
