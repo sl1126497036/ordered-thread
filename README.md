@@ -97,45 +97,53 @@ public class Caller implements Comparable<Caller> {
 Caller列表的执行逻辑请参考代码和注释：
 
 ```java
-package com.perez.async.async;
+package com.perez.async;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class AsyncStack {
+    private static final long defaultTimeout = 5000;
+    private ThreadPoolUtil threadPool = ThreadPoolUtil.getsInstance();
     private int threadIndex = 0;
     private List<Caller> callerList = new LinkedList<>();
 
     public AsyncStack(Action action) {
-        push(action, null, null);
+        push(action, null, null, null);
     }
 
-    public AsyncStack(Action action, Callback callback) {
-        push(action, callback, null);
+    public AsyncStack(Action action, Callback callback, Long timeout) {
+        push(action, callback, null, timeout);
     }
 
     public AsyncStack(Action action, Callback callback, Error error) {
-        push(action, callback, error);
+        push(action, callback, error, null);
+    }
+
+    public AsyncStack(Action action, Callback callback, Error error, Long timeout) {
+        push(action, callback, error, timeout);
     }
 
     /**
      * 将待执行方法加入列表
+     *
      * @param action
      * @param callback
      * @param error
      */
-    private void push(Action action, Callback callback, Error error) {
-        callerList.add(new Caller(action, callback, error, threadIndex));
+    private void push(Action action, Callback callback, Error error, Long timeout) {
+        callerList.add(new Caller(action, callback, error, threadIndex, timeout));
     }
 
     /**
      * 同步执行
+     *
      * @param action
      * @return
      */
@@ -143,8 +151,10 @@ public class AsyncStack {
         return sync(action, null, null);
     }
 
+
     /**
      * 同步执行
+     *
      * @param action
      * @param callback
      * @return
@@ -155,18 +165,31 @@ public class AsyncStack {
 
     /**
      * 同步执行
+     *
+     * @param action
+     * @param callback
+     * @return
+     */
+    public AsyncStack sync(Action action, Callback callback, Error error) {
+        return sync(action, callback, error, null);
+    }
+
+    /**
+     * 同步执行
+     *
      * @param action
      * @param callback
      * @param error
      * @return
      */
-    public AsyncStack sync(Action action, Callback callback, Error error) {
-        push(action, callback, error);
+    public AsyncStack sync(Action action, Callback callback, Error error, Long timeout) {
+        push(action, callback, error, timeout);
         return this;
     }
 
     /**
      * 在上一个线程之前执行
+     *
      * @param action
      * @return
      */
@@ -176,6 +199,7 @@ public class AsyncStack {
 
     /**
      * 在上一个线程之前执行
+     *
      * @param action
      * @param callback
      * @return
@@ -184,21 +208,27 @@ public class AsyncStack {
         return before(action, callback, null);
     }
 
+    public AsyncStack before(Action action, Callback callback, Error error) {
+        return before(action, callback, error, null);
+    }
+
     /**
      * 在上一个线程之前执行
+     *
      * @param action
      * @param callback
      * @param error
      * @return
      */
-    public AsyncStack before(Action action, Callback callback, Error error) {
+    public AsyncStack before(Action action, Callback callback, Error error, Long timeout) {
         threadIndex--;
-        push(action, callback, error);
+        push(action, callback, error, timeout);
         return this;
     }
 
     /**
      * 在上一个线程之后执行
+     *
      * @param action
      * @return
      */
@@ -208,6 +238,7 @@ public class AsyncStack {
 
     /**
      * 在上一个线程之后执行
+     *
      * @param action
      * @param callback
      * @return
@@ -216,21 +247,27 @@ public class AsyncStack {
         return after(action, callback, null);
     }
 
+    public AsyncStack after(Action action, Callback callback, Error error) {
+        return after(action, callback, error, null);
+    }
+
     /**
      * 在上一个线程之后执行
+     *
      * @param action
      * @param callback
      * @param error
      * @return
      */
-    public AsyncStack after(Action action, Callback callback, Error error) {
+    public AsyncStack after(Action action, Callback callback, Error error, Long timeout) {
         threadIndex++;
-        push(action, callback, error);
+        push(action, callback, error, timeout);
         return this;
     }
 
     /**
      * 在上一个线程之前执行，并将序号回退
+     *
      * @param action
      * @return
      */
@@ -240,6 +277,7 @@ public class AsyncStack {
 
     /**
      * 在上一个线程之前执行，并将序号回退
+     *
      * @param action
      * @param callback
      * @return
@@ -248,22 +286,28 @@ public class AsyncStack {
         return beforeBack(action, callback, null);
     }
 
+    public AsyncStack beforeBack(Action action, Callback callback, Error error) {
+        return beforeBack(action, callback, error, null);
+    }
+
     /**
      * 在上一个线程之前执行，并将序号回退
+     *
      * @param action
      * @param callback
      * @param error
      * @return
      */
-    public AsyncStack beforeBack(Action action, Callback callback, Error error) {
+    public AsyncStack beforeBack(Action action, Callback callback, Error error, Long timeout) {
         threadIndex--;
-        push(action, callback, error);
+        push(action, callback, error, timeout);
         threadIndex++;
         return this;
     }
 
     /**
      * 在上一个线程之后执行，并将序号回退
+     *
      * @param action
      * @return
      */
@@ -273,6 +317,7 @@ public class AsyncStack {
 
     /**
      * 在上一个线程之后执行，并将序号回退
+     *
      * @param action
      * @param callback
      * @return
@@ -281,16 +326,21 @@ public class AsyncStack {
         return afterBack(action, callback);
     }
 
+    public AsyncStack afterBack(Action action, Callback callback, Error error) {
+        return afterBack(action, callback, error, null);
+    }
+
     /**
      * 在上一个线程之后执行，并将序号回退
+     *
      * @param action
      * @param callback
      * @param error
      * @return
      */
-    public AsyncStack afterBack(Action action, Callback callback, Error error) {
+    public AsyncStack afterBack(Action action, Callback callback, Error error, Long timeout) {
         threadIndex++;
-        push(action, callback, error);
+        push(action, callback, error, timeout);
         threadIndex--;
         return this;
     }
@@ -298,53 +348,68 @@ public class AsyncStack {
     /**
      * 开始执行
      */
-    public void start() {
+    public void start() throws Exception {
         Collections.sort(callerList);
-        int preIndex = callerList.get(0).getThreadIndex();//preIndex表示上一个执行的线程序号
+        //preIndex表示上一个执行的线程序号
+        int preIndex = callerList.get(0).getThreadIndex();
         List<Caller> syncTaskList = new ArrayList<>();
         for (Caller caller : callerList) {
-            if (preIndex != caller.getThreadIndex()) {//如果当前RPC的线程序号与preIndex不同，则直接执行，并清空syncTaskList
+            //如果当前RPC的线程序号与preIndex不同，则直接执行，并清空syncTaskList
+            if (preIndex != caller.getThreadIndex()) {
                 doTask(syncTaskList);
                 syncTaskList.clear();
-                preIndex = caller.getThreadIndex();//更新上一个执行的RPC线程序号
+                //更新上一个执行的RPC线程序号
+                preIndex = caller.getThreadIndex();
             }
-            syncTaskList.add(caller);//将当前要执行的RPC加入到syncTaskList中
+            //将当前要执行的RPC加入到syncTaskList中
+            syncTaskList.add(caller);
         }
-        doTask(syncTaskList);//执行需要并发的RPC
+        //执行需要并发的RPC
+        doTask(syncTaskList);
     }
 
-    private void doTask(List<Caller> callerList) {
+    private void doTask(List<Caller> callerList) throws Exception {
         if (null != callerList && callerList.size() > 0) {
             CountDownLatch latch = new CountDownLatch(1);
-            ExecutorService exec = Executors.newFixedThreadPool(callerList.size());
             List<FutureBack> futureBackList = new ArrayList<>();
             for (Caller caller : callerList) {
-                FutureTask futureTask = new FutureTask(() -> {
-                    latch.await();
-                    return caller.getAction().action();//执行action
-                });
-                exec.execute(futureTask);
-                futureBackList.add(new FutureBack(futureTask, caller.getCallback(), caller.getError()));
+                try {
+                    Future future = threadPool.submit(() -> {
+                        latch.await();
+                        //执行action
+                        return caller.getAction().action();
+                    });
+                    futureBackList.add(new FutureBack(future, caller.getCallback(), caller.getError(), caller.getTimeout()));
+                } catch (RejectedExecutionException e) {
+                    //线程池已满，系统繁忙
+                    //TODO:是否可采用NIO，以节约线程开支
+                    throw e;
+                } catch (Exception e) {
+                    throw e;
+                }
             }
             latch.countDown();
             for (FutureBack futureBack : futureBackList) {
-                FutureTask futureTask = futureBack.getFutureTask();
+                Future future = futureBack.getFuture();
+                long timeout = null == futureBack.getTimeout() ? defaultTimeout : futureBack.getTimeout();
                 try {
-                    Object object = futureTask.get();
+                    Object object = future.get(timeout, TimeUnit.MILLISECONDS);
                     if (null != futureBack.getCallback()) {
-                        futureBack.getCallback().callback(object);//执行callback
+                        //执行callback
+                        futureBack.getCallback().callback(object);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                     if (null != futureBack.getCallback()) {
-                        futureBack.getError().error();//执行error
+                        //执行error
+                        futureBack.getError().error(e);
                     }
                 }
             }
-            exec.shutdown();
         }
     }
 }
+
 ```
 ## 使用方法:
      new AsyncStack(()->线程1要执行的方法,(result)->线程1要执行的回调,()->线程1要执行的异常处理)
