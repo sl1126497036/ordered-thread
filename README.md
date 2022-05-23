@@ -48,19 +48,22 @@ public interface Error {
 **Caller类**用于存储每个RPC的执行内容，回调以及异常处理，同时利用threadIndex字段记录该RPC操作的顺序：
 
 ```java
-package com.perez.async.async;
+package com.perez.async;
+
 
 public class Caller implements Comparable<Caller> {
     private Action action;
     private Callback callback;
     private Error error;
     private int threadIndex;
+    private Long timeout;
 
-    public Caller(Action action, Callback callback, Error error, int threadIndex) {
+    public Caller(Action action, Callback callback, Error error, int threadIndex,Long timeout) {
         this.action = action;
         this.callback = callback;
         this.error = error;
         this.threadIndex = threadIndex;
+        this.timeout = timeout;
     }
 
     public Action getAction() {
@@ -78,6 +81,8 @@ public class Caller implements Comparable<Caller> {
     public int getThreadIndex() {
         return threadIndex;
     }
+
+    public Long getTimeout(){return timeout;}
 
     @Override
     public int compareTo(Caller o) {
