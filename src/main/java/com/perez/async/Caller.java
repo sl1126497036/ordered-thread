@@ -1,4 +1,4 @@
-package com.perez.common.async;
+package com.perez.async;
 
 
 public class Caller implements Comparable<Caller> {
@@ -6,12 +6,14 @@ public class Caller implements Comparable<Caller> {
     private Callback callback;
     private Error error;
     private int threadIndex;
+    private Long timeout;
 
-    public Caller(Action action,Callback callback, Error error, int threadIndex) {
+    public Caller(Action action, Callback callback, Error error, int threadIndex,Long timeout) {
         this.action = action;
         this.callback = callback;
         this.error = error;
         this.threadIndex = threadIndex;
+        this.timeout = timeout;
     }
 
     public Action getAction() {
@@ -30,8 +32,10 @@ public class Caller implements Comparable<Caller> {
         return threadIndex;
     }
 
+    public Long getTimeout(){return timeout;}
+
     @Override
     public int compareTo(Caller o) {
-        return this.getThreadIndex()-o.getThreadIndex();
+        return this.getThreadIndex() - o.getThreadIndex();
     }
 }

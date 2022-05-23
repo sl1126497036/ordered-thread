@@ -1,4 +1,4 @@
-package com.perez.common.async;
+package com.perez.async;
 
 public interface Action<R> {
     /**
