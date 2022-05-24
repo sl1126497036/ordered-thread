@@ -283,7 +283,6 @@ public class AsyncStack {
                     futureBackList.add(new FutureBack(future, caller.getCallback(), caller.getError(), caller.getTimeout()));
                 } catch (RejectedExecutionException e) {
                     //线程池已满，系统繁忙
-                    //TODO:是否可采用NIO，以节约线程开支
                     throw e;
                 } catch (Exception e) {
                     throw e;
