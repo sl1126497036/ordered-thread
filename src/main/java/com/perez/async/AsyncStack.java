@@ -18,6 +18,9 @@ public class AsyncStack {
     public AsyncStack(Action action) {
         push(action, null, null, null);
     }
+    public AsyncStack(Action action, Callback callback) {
+        push(action, callback, null,null);
+    }
 
     public AsyncStack(Action action, Callback callback, Long timeout) {
         push(action, callback, null, timeout);
